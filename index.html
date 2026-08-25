@@ -2,33 +2,141 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book</title>
-    <link rel="stylesheet" href="./style.css">
+    <title>PDF Flipbook</title>
     
-    <!-- 1. Load PDF.js main library -->
+    <!-- Dependencies via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    
-    <!-- 2. REQUIRED: Load the PDF.js worker script matching your version -->
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@0.4.3/dist/js/page-flip.browser.js"></script>
 
-    <script src="https://kit.fontawesome.com/b0f29e9bfe.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1e293b;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, sans-serif;
+            box-sizing: border-box;
+        }
+
+        #status {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #book {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; /* Shown after load */
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background-color: #3b82f6;
+            color: white;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #2563eb; }
+        button:disabled { background-color: #475569; cursor: not-allowed; }
+    </style>
 </head>
 <body>
-    <button id="prev-btn">
-        <i class="fas fa-arrow-circle-left"></i>
-    </button>
-    <div id="book" class="book"></div>
-    <button id="next-btn">
-        <i class="fas fa-arrow-circle-right"></i>
-    </button>
+
+    <div id="status">Loading document.pdf...</div>
+
+    <div class="container">
+        <div id="book"></div>
+    </div>
+
+    <div class="controls">
+        <button id="prev-btn" disabled>◀ Prev</button>
+        <button id="next-btn" disabled>Next ▶</button>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        // 1. Tell students to keep their file named 'document.pdf'
+        const PDF_FILE = 'document.pdf';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const statusEl = document.getElementById('status');
+            const bookEl = document.getElementById('book');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            try {
+                const pdf = await pdfjsLib.getDocument(PDF_FILE).promise;
+                const images = [];
+
+                // Extract base width and height from page 1 to scale automatically
+                const firstPage = await pdf.getPage(1);
+                const originalViewport = firstPage.getViewport({ scale: 1.0 });
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    statusEl.textContent = `Rendering page ${i} of ${pdf.numPages}...`;
+                    const page = await pdf.getPage(i);
+                    
+                    // Render at 2x resolution for crisp graphics
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({ canvasContext: ctx, viewport }).promise;
+                    images.push(canvas.toDataURL('image/jpeg', 0.9));
+                }
+
+                statusEl.style.display = 'none';
+                bookEl.style.display = 'block';
+
+                // Initialize PageFlip using original PDF aspect ratio
+                const pageFlip = new St.PageFlip(bookEl, {
+                    width: originalViewport.width,
+                    height: originalViewport.height,
+                    size: "stretch",
+                    minWidth: 300,
+                    maxWidth: 1000,
+                    minHeight: 400,
+                    maxHeight: 1200,
+                    showCover: true
+                });
+
+                pageFlip.loadFromImages(images);
+
+                prevBtn.disabled = false;
+                nextBtn.disabled = false;
+                prevBtn.addEventListener('click', () => pageFlip.flipPrev());
+                nextBtn.addEventListener('click', () => pageFlip.flipNext());
+
+            } catch (err) {
+                statusEl.textContent = 'Error: Make sure your file is named "document.pdf" in the main folder.';
+            }
+        });
+    </script>
 </body>
-<script src="./bookifyPDF.min.js" ></script>
-<script>
-    let url = "Pictorial Example.pdf";
-    readPDFasBook(url, "prev-btn", "next-btn", "book", 1);
-</script>
 </html>
