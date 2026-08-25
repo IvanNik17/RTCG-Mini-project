@@ -6,7 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book</title>
     <link rel="stylesheet" href="./style.css">
+    
+    <!-- 1. Load PDF.js main library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    
+    <!-- 2. REQUIRED: Load the PDF.js worker script matching your version -->
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+
     <script src="https://kit.fontawesome.com/b0f29e9bfe.js" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -21,6 +29,6 @@
 <script src="./bookifyPDF.min.js" ></script>
 <script>
     let url = "Pictorial Example.pdf";
-    readPDFasBook(url,"prev-btn","next-btn","book",1);
+    readPDFasBook(url, "prev-btn", "next-btn", "book", 1);
 </script>
 </html>
